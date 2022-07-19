@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Website</title>
+    <h2> <a href="{% url 'index' %}">Home</a> </h2>
+
+    <h2> <a href="{% url 'logout' %}">Logut</a> </h2>
+</head>
+    <body>
+        <br> <br>
+        
+        <h2> <a href="{% url 'create_post' %}">Create Post</a> </h2>
+        <ul>
+            {% for post in posts %}
+            <li> <a href="{% url 'post_view' post.id %}"> {{post}} </a> </li>
+            {% endfor %}
+        </ul>
+    </body>
+</html>

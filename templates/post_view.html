@@ -1,0 +1,44 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post View</title>
+    <h2> <a href="{% url 'index' %}">Home</a> </h2>
+
+
+</head>
+<body>
+   <ul>
+    <h3> <li>Post title: {{post.title}} </li> </h3>
+    <h3> <li> Post text: {{post.text}}</li> </h3>
+    <h3> <li> Post Created at: {{post.created_at}} </li> </h3>
+
+   </ul>
+        {% if comments_count == 0 or comments_count == 1 %}
+        <h2> Comment {{comments_count}} </h2>
+        {% else %}
+        <h2> Comments {{comments_count}} </h2>
+        {% endif %}
+   <ul>
+    
+    {% for comment in comments %}
+        {% if request.user == comment.user %}
+        <li> Text: <a href="{% url 'comment_edit' comment.id %}"> {{comment.text}}  </a> </li>
+        <li> Creater: {{comment.user}} </li>
+        <br> <br>
+        {% else %}
+        <li> Text:  {{comment.text}} </li> </li>
+        <li> Creater:    {{comment.user}} </li>
+        <br> <br>
+        {% endif %}
+    {% endfor %}
+   </ul>
+
+   <a href="{% url 'create_comment' post.id %}"> Create Comment </a> <br> <br>
+   {% if request.user == post.user %}
+   <a href="{% url 'post_edit' post.id %}"> Edit Post </a>
+   {% else %}
+   {% endif %}
+</body>
+</html>
