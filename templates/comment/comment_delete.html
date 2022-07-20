@@ -1,0 +1,7 @@
+<form action="" method="POST">
+    {{form.as_p}}
+    {% csrf_token %}
+  <h3> Do really want to delete this "{{comment.text}}" </h3>
+  <input class="btn btn-outline-info" type="submit" value="Delete">
+  </form>
+

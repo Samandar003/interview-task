@@ -12,7 +12,8 @@ from django.contrib.auth.views import LoginView
 from django.views.generic.edit import CreateView, UpdateView
 from django.contrib.auth import logout, authenticate
 from django.contrib.auth.decorators import login_required
-
+from django.views.generic import TemplateView, View, DeleteView, DetailView, CreateView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 
 class SignUp(generic.CreateView):
@@ -32,64 +33,89 @@ def logoutPage(request):
     logout(request)
     return redirect('login')
 
-def index(request):
-    posts = Post.objects.all()
-    context = {'posts':posts}
-    return render(request, 'home.html', context)
+class Index(TemplateView):
+    template_name = 'home.html'
 
-@login_required(login_url='login')
-def post_view(request, pk):
-    post = Post.objects.get(id=pk)
-    comments = Comment.objects.filter(post__id=pk)
-    comments_count = len(comments)
-    context = {'post':post, 'comments':comments, 'comments_count':comments_count}
-    return render(request, 'post_view.html', context)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['posts'] = Post.objects.all()
+        return context
 
-@login_required(login_url='login')
-def post_edit(request, pk):
-    post = Post.objects.filter(pk=pk).first()
-    if request.method == 'POST':
-            post.title = request.POST['title']
-            post.text = request.POST['text']
-            post.save()
-            return redirect('/')
-    return render(request, 'post/post_edit.html', {'post':post})
+class Post_View(LoginRequiredMixin, DetailView):
+    model = Post
+    context_object_name = 'post'
+    template_name = 'post_view.html'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comments'] = Comment.objects.filter(post__id=self.kwargs['pk'])
+        context['comments_count'] = len(context['comments'])
+        return context
+
+class Post_Edit(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    template_name = 'post/post_edit.html'
+    context_object_name = 'post'
+    fields = ['title', 'text']
+    success_url = reverse_lazy('/')
+    model = Post
+
+    def test_func(self):
+        post = self.get_object()
+        return True if post.user == self.request.user else False
+
+class Create_post(CreateView, LoginRequiredMixin):
+    template_name = 'post/create_post.html'
+    model = Post
+    fields = ['title', 'text']
+    success_url = reverse_lazy('index')
+
+    def form_valid(self, form):
+      form.instance.user = self.request.user
+      return super(Create_post, self).form_valid(form)
+
+class Create_Comment(LoginRequiredMixin, CreateView):
+    model = Comment
+    fields = ['text']
+    template_name = 'comment/create_comment.html'
+    success_url = reverse_lazy('index')
+
+    def form_valid(self, form) -> HttpResponse:
+        form.instance.post = Post.objects.get(id=self.kwargs['pk'])
+        form.instance.user = self.request.user
+        return super(Create_Comment, self).form_valid(form)
+
+class Comment_Edit(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Comment
+    fields = ['text']
+    template_name = 'comment/comment_edit.html'
+    success_url = reverse_lazy('index')
+
+    def form_valid(self, form) -> HttpResponse:
+        form.instance.user = self.request.user
+        form.instance.post = Post.objects.get(id=self.kwargs['pk'])
+        return super(Comment_Edit, self).form_valid(form)
+
+    def test_func(self):
+        comment = self.get_object()
+        return True if comment.user == self.request.user else False
+
+class Post_Delete(DeleteView, LoginRequiredMixin, UserPassesTestMixin):
+    model = Post
+    template_name = 'post/post_delete.html'
+    context_object_name = 'post'
+    success_url = reverse_lazy('index')
+
+    def test_func(self):
+        post = self.get_object()
+        return True if post.user == self.request.user else False
 
 
-@login_required(login_url='login')
-def create_post(request):
-    if request.method == 'POST':
-        Post.objects.create(title=request.POST.get('title'), text=request.POST['text'], user=request.user)
-        return redirect('index')
-    return render(request, 'post/create_post.html')
+class Comment_Delete(DeleteView, UserPassesTestMixin, LoginRequiredMixin):
+    model = Comment
+    template_name = 'comment/comment_delete.html'
+    context_object_name = 'comment'
+    success_url = reverse_lazy('index')
 
-
-@login_required(login_url='login')
-def create_comment(request, pk):
-    if request.method == 'POST':
-        post = Post.objects.get(id=pk)
-        text = request.POST['text']
-        user = User.objects.get(pk=request.user.pk)
-        comment = Comment.objects.create(post=post, text=text, user=user)
-        comment.save()
-        return redirect('index')
-    return render(request, 'comment/create_comment.html')
-
-@login_required(login_url='login')
-def comment_edit(request, pk):
-    comment = Comment.objects.get(pk=pk)
-    if request.method == 'POST':
-        comment.text = request.POST['text']
-        comment.save()
-        return redirect('/')
-    return render(request, 'comment/comment_edit.html', {'comment':comment})
-
-
-# class PostCreateView(LoginRequiredMixin, CreateView):
-#   model = Post
-#   fields = ['title', 'text']
-#   template_name = 'post/post_create.html'  
-#   def form_valid(self, form):
-#     form.instance.author = self.request.user
-#     return super().form_valid(form)
+    def test_func(self):
+        comment = self.get_object()
+        return True if comment.user == self.request.user else False
 

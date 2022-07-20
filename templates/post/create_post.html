@@ -11,12 +11,8 @@
 <body>
     <form action="" method="POST">
         {% csrf_token %}
-        <label for="">Title</label> <br>
-        <input type="text" name="title" id=""> <br> 
-        <label for="">text</label> <br>
-        <input type="text" name="text" id=""> 
-            <br> <br>
-        <input type="submit">
+        {{form.as_p}}
+        <input type="submit" name="" id="">
     </form>
 </body>
 </html>
