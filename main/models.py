@@ -9,9 +9,13 @@ class Post(models.Model):
     title = models.CharField(max_length=500)
     text = models.TextField(null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    likes = models.ManyToManyField(User, related_name='likes', blank=True)
+    dislikes = models.ManyToManyField(User, related_name='dislikes', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def total_likes(self):  
+        return self.likes.count()
 
     class Meta:
         verbose_name = _('post')

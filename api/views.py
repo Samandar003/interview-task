@@ -4,26 +4,47 @@ from rest_framework.views import APIView
 from .serializers import PostSerializer, CommentSerializer
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from .permissions import IsOwnerOrReadOnly
 from rest_framework import status, viewsets
+from rest_framework import generics
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
+from rest_framework.authentication import TokenAuthentication
 
 
-class PostAPIView(APIView):
-    def get(self, request, *args, **kwargs):
-        posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+class PostModelViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+    authentication_classes = (TokenAuthentication,)
+    serializer_class = PostSerializer
+    def get_queryset(request):
+        return Post.objects.all()
 
-    def post(self, request, *args, **kwargs):
-        post = PostSerializer(data=request.data)
-        post.is_valid(raise_exception=True)
-        # post.user = User.objects.get(user=request.user)
-        post.save()
-        return Response(data=post.data)
-    def get_pk(self, request, pk, *args, **kwargs):
-        post = Post.objects.get(id=pk)
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
+    @action(detail=True, methods=['POST'])
+    def like(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.likes.filter(id=request.user.id).exists():
+            post.likes.remove(request.user)
+        else:
+            if post.dislikes.filter(id=request.user.id).exists():
+                post.dislikes.remove(request.user)
+            post.likes.add(request.user)
+        return Response(PostSerializer(post).data)
+
+    @action(detail=True, methods=['POST'])
+    def dislike(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.dislikes.filter(id=request.user.id).exists():
+            post.dislikes.remove(request.user)
+        else:
+            if post.likes.filter(id=request.user.id).exists():
+                post.likes.remove(request.user)
+            post.dislikes.add(request.user)
+        return Response(PostSerializer(post).data)
+
+    
 class CommentAPIView(APIView):
     def get(self, request, pk, *args, **kwargs):
         post = Post.objects.get(id=pk)
@@ -31,3 +52,6 @@ class CommentAPIView(APIView):
         serializers = CommentSerializer(comments, many=True)
         return Response(serializers.data)
 
+
+
+    

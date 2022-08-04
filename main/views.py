@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Post, Comment
+from django.http import JsonResponse
+from django.template.loader import render_to_string
 from .forms import PostModelForm, CommentModelForm
 from django.http import HttpResponse
 from django.contrib.auth.forms import UserCreationForm
@@ -119,3 +121,27 @@ class Comment_Delete(DeleteView, UserPassesTestMixin, LoginRequiredMixin):
         comment = self.get_object()
         return True if comment.user == self.request.user else False
 
+def post_detail(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    is_liked = False
+    if post.likes.filter(id=request.user.id).exists():
+        is_liked = True
+    return render(request, 'post_view.html', {'post': post, 'is_liked': is_liked, 'total_likes': post.total_likes(), })
+
+def like_post(request):
+    post = get_object_or_404(Post, id=request.POST.get('id'))
+    is_liked = False
+    if post.likes.filter(id=request.user.id).exists():
+        post.likes.remove(request.user)
+        is_liked = False
+    else:
+        post.likes.add(request.user)
+        is_liked = True
+    context = {
+        'post': post,
+        'is_liked': is_liked,
+        'total_likes': post.total_likes(),
+    }
+    if request.is_ajax():
+        html = render_to_string('blog/like_section.html', context, request=request)
+        return JsonResponse({'form': html})

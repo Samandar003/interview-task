@@ -4,6 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
@@ -28,7 +29,14 @@ INSTALLED_APPS = [
     'main.apps.MainConfig',
     'api.apps.ApiConfig',
     'rest_framework',
+    'rest_framework.authtoken',
+
 ]
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_PERMISSION_CLASSES': (
+#         'rest_framework.permissions.IsAuthenticated'
+#     )}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
