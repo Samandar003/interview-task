@@ -10,17 +10,52 @@ from rest_framework import generics
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .serializers import RegisterSerializer
+from .serializers import MyTokenObtainPairSerializer
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class UserCreateViewSet(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+    queryset = User.objects.all()
+
+
+# class MyObtainTokenPairView(TokenObtainPairView):
+#     permission_classes = (AllowAny,)
+#     serializer_class = MyTokenObtainPairSerializer
 
 
 class PostModelViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [TokenAuthentication,]
+
     serializer_class = PostSerializer
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
     def get_queryset(request):
         return Post.objects.all()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+  
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        if instance.author == self.request.user:
+            instance.delete()
+        else:
+            pass
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
     @action(detail=True, methods=['POST'])
     def like(self, request, *args, **kwargs):
